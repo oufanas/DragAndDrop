@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Drag & Drop Divertido</title>
+<title>Drag & Drop Matemáticas</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <style>
   body { font-family: 'Inter', sans-serif; background: #f0f4f8; display: flex; justify-content: center; padding: 40px; }
@@ -11,9 +11,9 @@
   h2 { margin-top: 0; color: #333; }
   .item { padding: 12px; margin-bottom: 12px; border-radius: 12px; background: #fbbf24; cursor: grab; text-align: center; font-weight: 600; color: #1f2937; transition: transform 0.2s; }
   .item:hover { transform: scale(1.05); }
-  .box { height: 80px; border: 2px dashed #2563eb; border-radius: 15px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; transition: background 0.3s, border-color 0.3s; }
+  .box { height: 80px; border: 2px dashed #2563eb; border-radius: 15px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; transition: background 0.3s, border-color 0.3s; font-weight: 600; font-size: 18px; }
   .box.occupied { border-style: solid; background: #dbeafe; }
-  .msg { font-weight: 600; margin-top: 12px; min-height: 24px; text-align: center; }
+  .msg { font-weight: 600; margin-top: 12px; min-height: 24px; text-align: center; font-size: 18px; }
   button { margin-top: 12px; padding: 8px 16px; border: none; background: #2563eb; color: white; border-radius: 12px; cursor: pointer; font-weight: 600; }
   button:hover { background: #1e40af; }
 </style>
@@ -21,88 +21,113 @@
 <body>
 <div class="container">
   <div class="panel">
-    <h2>Valores</h2>
-    <div id="items">
-      <div class="item" draggable="true" id="item1" data-target="box1">🍎 Manzana</div>
-      <div class="item" draggable="true" id="item2" data-target="box2">🍌 Plátano</div>
-      <div class="item" draggable="true" id="item3" data-target="box3">🍒 Cereza</div>
-    </div>
+    <h2>Resultados</h2>
+    <div id="items"></div>
     <button id="resetBtn">Reiniciar</button>
   </div>
   <div class="panel">
-    <h2>Cajas</h2>
-    <div id="boxes">
-      <div class="box" id="box1">Caja 1</div>
-      <div class="box" id="box2">Caja 2</div>
-      <div class="box" id="box3">Caja 3</div>
-    </div>
+    <h2>Operaciones</h2>
+    <div id="boxes"></div>
     <div id="msg" class="msg"></div>
   </div>
 </div>
 
 <script>
 const itemsDiv = document.getElementById('items');
-const boxes = document.querySelectorAll('.box');
+const boxesDiv = document.getElementById('boxes');
 const msgDiv = document.getElementById('msg');
 const resetBtn = document.getElementById('resetBtn');
 
-function handleDragStart(e) {
-  e.dataTransfer.setData('text/plain', e.target.id);
+let operations = [];
+let items = [];
+let placed = {};
+
+// Función para generar operaciones aleatorias simples
+function generateOperations() {
+  operations = [];
+  for(let i=0; i<3; i++){
+    const a = Math.floor(Math.random()*10)+1;
+    const b = Math.floor(Math.random()*10)+1;
+    operations.push({id: `box${i+1}`, expr: `${a} + ${b}`, result: a+b});
+  }
 }
 
-function handleDrop(e) {
+// Renderizar cajas con operaciones
+function renderBoxes() {
+  boxesDiv.innerHTML = '';
+  operations.forEach(op => {
+    const box = document.createElement('div');
+    box.className = 'box';
+    box.id = op.id;
+    box.textContent = op.expr;
+    box.addEventListener('dragover', e=>e.preventDefault());
+    box.addEventListener('drop', e=>handleDrop(e, op));
+    boxesDiv.appendChild(box);
+    placed[op.id] = false;
+  });
+}
+
+// Renderizar valores (resultados)
+function renderItems() {
+  itemsDiv.innerHTML = '';
+  items.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'item';
+    div.draggable = true;
+    div.id = `item${item}`;
+    div.textContent = item;
+    div.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', item));
+    itemsDiv.appendChild(div);
+  });
+}
+
+// Manejar drop
+function handleDrop(e, op){
   e.preventDefault();
-  const itemId = e.dataTransfer.getData('text/plain');
-  const item = document.getElementById(itemId);
-  const box = e.currentTarget;
-
-  // Evitar reemplazar un item ya colocado
-  if(box.classList.contains('occupied')) return;
-
-  box.textContent = item.textContent;
-  box.classList.add('occupied');
-  item.remove();
-
-  // Feedback
-  if(item.dataset.target === box.id){
+  const value = parseInt(e.dataTransfer.getData('text/plain'));
+  if(op.result === value){
+    const boxEl = document.getElementById(op.id);
+    boxEl.textContent = `${op.expr} = ${value}`;
+    boxEl.classList.add('occupied');
+    // Quitar item del panel
+    const itemEl = document.getElementById(`item${value}`);
+    if(itemEl) itemEl.remove();
+    placed[op.id] = true;
     msgDiv.textContent = '🎉 Correcto!';
     msgDiv.style.color = 'green';
+    checkAllPlaced();
   } else {
     msgDiv.textContent = '❌ Incorrecto!';
     msgDiv.style.color = 'red';
   }
 }
 
-function handleDragOver(e) {
-  e.preventDefault();
+// Verificar si todas las operaciones están completadas
+function checkAllPlaced(){
+  if(Object.values(placed).every(v=>v)){
+    setTimeout(() => {
+      msgDiv.textContent = '✅ ¡Muy bien! Nuevas operaciones...';
+      generateNewRound();
+    }, 500);
+  }
 }
 
-boxes.forEach(box => {
-  box.addEventListener('dragover', handleDragOver);
-  box.addEventListener('drop', handleDrop);
-});
-
-document.querySelectorAll('.item').forEach(item => {
-  item.addEventListener('dragstart', handleDragStart);
-});
-
-resetBtn.addEventListener('click', () => {
-  // limpiar cajas
-  boxes.forEach(box => {
-    box.textContent = `Caja ${box.id.slice(-1)}`;
-    box.classList.remove('occupied');
-  });
-  // volver a crear items
-  itemsDiv.innerHTML = `
-    <div class="item" draggable="true" id="item1" data-target="box1">🍎 Manzana</div>
-    <div class="item" draggable="true" id="item2" data-target="box2">🍌 Plátano</div>
-    <div class="item" draggable="true" id="item3" data-target="box3">🍒 Cereza</div>
-  `;
-  document.querySelectorAll('.item').forEach(item => {
-    item.addEventListener('dragstart', handleDragStart);
-  });
+// Generar nuevos valores y operaciones
+function generateNewRound(){
+  generateOperations();
+  items = operations.map(op => op.result);
+  renderBoxes();
+  renderItems();
   msgDiv.textContent = '';
+}
+
+// Reset
+resetBtn.addEventListener('click', () => {
+  generateNewRound();
 });
+
+// Inicializar primer juego
+generateNewRound();
 </script>
 </body>
 </html>
