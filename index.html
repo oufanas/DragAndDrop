@@ -2,12 +2,12 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Drag & Drop Matemáticas Aleatorio</title>
+<title>Drag & Drop Matemáticas Aleatorio - 5 valores</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <style>
   body { font-family: 'Inter', sans-serif; background: #f0f4f8; display: flex; justify-content: center; padding: 40px; }
-  .container { display: flex; gap: 40px; flex-wrap: wrap; max-width: 900px; }
-  .panel { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 6px 20px rgba(0,0,0,0.1); flex: 1; min-width: 250px; }
+  .container { display: flex; gap: 40px; flex-wrap: wrap; max-width: 1000px; }
+  .panel { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 6px 20px rgba(0,0,0,0.1); flex: 1; min-width: 300px; }
   h2 { margin-top: 0; color: #333; }
   .item { padding: 12px; margin-bottom: 12px; border-radius: 12px; background: #fbbf24; cursor: grab; text-align: center; font-weight: 600; color: #1f2937; transition: transform 0.2s; }
   .item:hover { transform: scale(1.05); }
@@ -41,11 +41,12 @@ const resetBtn = document.getElementById('resetBtn');
 let operations = [];
 let items = [];
 let placed = {};
+const TOTAL = 5; // ahora son 5 operaciones y 5 resultados
 
 // Función para generar operaciones aleatorias simples
 function generateOperations() {
   operations = [];
-  for(let i=0; i<3; i++){
+  for(let i=0; i<TOTAL; i++){
     const a = Math.floor(Math.random()*10)+1;
     const b = Math.floor(Math.random()*10)+1;
     operations.push({id: `box${i+1}`, expr: `${a} + ${b}`, result: a+b});
