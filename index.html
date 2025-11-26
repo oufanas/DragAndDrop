@@ -85,3 +85,23 @@ button{border:1px solid #e5e7eb;background:white;padding:8px 10px;border-radius:
 </div>
 </div>
 
+
+<div style="margin-top:12px;display:flex;align-items:center;gap:12px">
+<div class="feedback" id="feedback">&nbsp;</div>
+<div style="margin-left:auto;font-size:13px;color:var(--muted)" id="placedCount">Colocados: 0/3</div>
+</div>
+</section>
+</div>
+
+
+<div style="margin-top:14px;color:var(--muted);font-size:13px">Consejo: Manzana → Caja 1, Plátano → Caja 2, Cereza → Caja 3.</div>
+</div>
+
+
+<script>
+(function(){
+const initial = [
+{ id: 'item1', label: 'Manzana', target: 'box1' },
+{ id: 'item2', label: 'Plátano', target: 'box2' },
+{ id: 'item3', label: 'Cereza', target: 'box3' }
+];
