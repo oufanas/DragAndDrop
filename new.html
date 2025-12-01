@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+operations = [];
+for(let i=0; i<TOTAL; i++){
+const a = Math.floor(Math.random()*10)+1;
+const b = Math.floor(Math.random()*10)+1;
+operations.push({id: `box${i+1}`, expr: `${a} + ${b}`, result: a+b});
+}
+}
+
+
+function shuffleArray(array) {
+const arr = array.slice();
+for(let i = arr.length - 1; i > 0; i--){
+const j = Math.floor(Math.random()*(i+1));
+[arr[i], arr[j]] = [arr[j], arr[i]];
+}
+return arr;
+}
+
+
+function renderBoxes() {
+boxesDiv.innerHTML = '';
+operations.forEach(op => {
+const box = document.createElement('div');
+box.className = 'box';
+box.id = op.id;
+box.textContent = op.expr;
+box.addEventListener('dragover', e=>e.preventDefault());
+box.addEventListener('drop', e=>handleDrop(e, op));
+boxesDiv.appendChild(box);
+placed[op.id] = false;
+});
+}
+
+
+function renderItems() {
+itemsDiv.innerHTML = '';
+const shuffled = shuffleArray(items);
+shuffled.forEach(value => {
+const div = document.createElement('div');
+div.className = 'item';
+div.draggable = true;
+div.id = `item${value}`;
+div.textContent = value;
+div.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', value));
+itemsDiv.appendChild(div);
+});
+}
+
+
+function handleDrop(e, op){
+e.preventDefault();
+const value = parseInt(e.dataTransfer.getData('text/plain'));
+if(op.result === value){
+const boxEl = document.getElementById(op.id);
+boxEl.textContent = `${op.expr} = ${value}`;
+boxEl.classList.add('occupied');
+const itemEl = document.getElementById(`item${value}`);
+if(itemEl) itemEl.remove();
+placed[op.id] = true;
+msgDiv.textContent = '🎉 Correcto!';
+msgDiv.style.color = 'green';
+checkAllPlaced();
+} else {
+msgDiv.textContent = '❌ Incorrecto!';
+msgDiv.style.color = 'red';
+}
+}
+
+
+function checkAllPlaced(){
+if(Object.values(placed).every(v=>v)){
+setTimeout(() => {
+msgDiv.textContent = '✅ ¡Muy bien! Nuevas operaciones...';
+generateNewRound();
+}, 500);
+}
+}
+
+
+function generateNewRound(){
+generateOperations();
+items = operations.map(op => op.result);
+renderBoxes();
+renderItems();
+msgDiv.textContent = '';
+startTimer();
+}
+
+
+resetBtn.addEventListener('click', generateNewRound);
+
+
+generateNewRound();
+</script>
+</body>
+</html>
