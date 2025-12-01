@@ -1,97 +1,223 @@
 <!DOCTYPE html>
-operations = [];
-for(let i=0; i<TOTAL; i++){
-const a = Math.floor(Math.random()*10)+1;
-const b = Math.floor(Math.random()*10)+1;
-operations.push({id: `box${i+1}`, expr: `${a} + ${b}`, result: a+b});
-}
-}
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>Drag & Drop Matemáticas con Temporizador (5)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#f0f4f8;--card:#fff;--accent:#2563eb;--gold:#fbbf24;--ok:#10b981;--err:#ef4444}
+  body{font-family:Inter,system-ui,Arial;background:var(--bg);display:flex;justify-content:center;padding:28px}
+  .container{display:flex;gap:28px;flex-wrap:wrap;max-width:1100px;width:100%}
+  .panel{background:var(--card);padding:18px;border-radius:16px;box-shadow:0 8px 24px rgba(2,6,23,0.08);flex:1;min-width:300px}
+  h2{margin:0 0 12px 0;color:#111827}
+  #timer{font-size:20px;font-weight:700;color:var(--err);text-align:center;margin-bottom:10px}
+  .items{display:flex;flex-direction:column;gap:10px}
+  .item{background:var(--gold);padding:12px;border-radius:10px;cursor:grab;font-weight:700;text-align:center;user-select:none;transition:transform .12s}
+  .item:active{cursor:grabbing}
+  .boxes{display:flex;flex-direction:column;gap:12px}
+  .box{height:72px;border:2px dashed var(--accent);border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;background:#fff;transition:background .18s, border-color .18s}
+  .box.occupied{border-style:solid;background:#dbeafe}
+  .msg{min-height:26px;text-align:center;font-weight:700;margin-top:10px}
+  button{display:inline-block;padding:8px 14px;border-radius:10px;border:0;background:var(--accent);color:white;font-weight:700;cursor:pointer}
+  button:hover{filter:brightness(.95)}
+  @media (max-width:820px){ .container{flex-direction:column} }
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="panel">
+      <h2>Resultados</h2>
+      <div id="items" class="items" aria-live="polite"></div>
+      <div style="margin-top:12px"><button id="resetBtn">Reiniciar</button></div>
+    </div>
 
+    <div class="panel">
+      <h2>Operaciones</h2>
+      <div id="timer">Tiempo: 60</div>
+      <div id="boxes" class="boxes" aria-live="polite"></div>
+      <div id="msg" class="msg"></div>
+    </div>
+  </div>
 
-function shuffleArray(array) {
-const arr = array.slice();
-for(let i = arr.length - 1; i > 0; i--){
-const j = Math.floor(Math.random()*(i+1));
-[arr[i], arr[j]] = [arr[j], arr[i]];
-}
-return arr;
-}
+<script>
+(() => {
+  const TOTAL = 5;
+  const ROUND_TIME = 60; // segundos
 
+  const itemsDiv = document.getElementById('items');
+  const boxesDiv = document.getElementById('boxes');
+  const msgDiv = document.getElementById('msg');
+  const timerEl = document.getElementById('timer');
+  const resetBtn = document.getElementById('resetBtn');
 
-function renderBoxes() {
-boxesDiv.innerHTML = '';
-operations.forEach(op => {
-const box = document.createElement('div');
-box.className = 'box';
-box.id = op.id;
-box.textContent = op.expr;
-box.addEventListener('dragover', e=>e.preventDefault());
-box.addEventListener('drop', e=>handleDrop(e, op));
-boxesDiv.appendChild(box);
-placed[op.id] = false;
-});
-}
+  let operations = [];          // [{id:'box1', expr:'2+3', result:5}, ...]
+  let items = [];               // [{id:'item-0', value:5}, ...]
+  let placed = {};              // mapping boxId -> true/false
+  let timeLeft = ROUND_TIME;
+  let timerInterval = null;
+  let itemCounter = 0; // para ids únicos
 
+  function uid(prefix='id') {
+    itemCounter++;
+    return `${prefix}-${Date.now().toString(36)}-${itemCounter}`;
+  }
 
-function renderItems() {
-itemsDiv.innerHTML = '';
-const shuffled = shuffleArray(items);
-shuffled.forEach(value => {
-const div = document.createElement('div');
-div.className = 'item';
-div.draggable = true;
-div.id = `item${value}`;
-div.textContent = value;
-div.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', value));
-itemsDiv.appendChild(div);
-});
-}
+  // Genera operaciones simples (a + b). Se podría ampliar a -, ×, ÷.
+  function generateOperations() {
+    operations = [];
+    for (let i = 0; i < TOTAL; i++) {
+      const a = Math.floor(Math.random() * 10) + 1;
+      const b = Math.floor(Math.random() * 10) + 1;
+      operations.push({
+        id: `box${i+1}`,
+        expr: `${a} + ${b}`,
+        result: a + b
+      });
+    }
+  }
 
+  // Fisher-Yates shuffle (no muta el original)
+  function shuffleArray(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
 
-function handleDrop(e, op){
-e.preventDefault();
-const value = parseInt(e.dataTransfer.getData('text/plain'));
-if(op.result === value){
-const boxEl = document.getElementById(op.id);
-boxEl.textContent = `${op.expr} = ${value}`;
-boxEl.classList.add('occupied');
-const itemEl = document.getElementById(`item${value}`);
-if(itemEl) itemEl.remove();
-placed[op.id] = true;
-msgDiv.textContent = '🎉 Correcto!';
-msgDiv.style.color = 'green';
-checkAllPlaced();
-} else {
-msgDiv.textContent = '❌ Incorrecto!';
-msgDiv.style.color = 'red';
-}
-}
+  // Render cajas (operaciones)
+  function renderBoxes() {
+    boxesDiv.innerHTML = '';
+    placed = {};
+    operations.forEach(op => {
+      const box = document.createElement('div');
+      box.className = 'box';
+      box.id = op.id;
+      box.textContent = op.expr;
+      box.setAttribute('role','button');
+      box.addEventListener('dragover', e => e.preventDefault());
+      box.addEventListener('drop', e => handleDrop(e, op));
+      boxesDiv.appendChild(box);
+      placed[op.id] = false;
+    });
+  }
 
+  // Render items (resultados) en orden aleatorio; cada item tiene id único y data-value
+  function renderItems() {
+    itemsDiv.innerHTML = '';
+    const shuffled = shuffleArray(items);
+    shuffled.forEach(it => {
+      const div = document.createElement('div');
+      div.className = 'item';
+      div.id = it.id;
+      div.textContent = it.value;
+      div.draggable = true;
+      div.setAttribute('data-value', String(it.value));
+      div.addEventListener('dragstart', e => {
+        // Transferimos el ID único del elemento
+        e.dataTransfer.setData('text/plain', it.id);
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      itemsDiv.appendChild(div);
+    });
+  }
 
-function checkAllPlaced(){
-if(Object.values(placed).every(v=>v)){
-setTimeout(() => {
-msgDiv.textContent = '✅ ¡Muy bien! Nuevas operaciones...';
-generateNewRound();
-}, 500);
-}
-}
+  function handleDrop(e, op) {
+    e.preventDefault();
+    const draggedId = e.dataTransfer.getData('text/plain');
+    if (!draggedId) return;
 
+    const draggedEl = document.getElementById(draggedId);
+    if (!draggedEl) return;
 
-function generateNewRound(){
-generateOperations();
-items = operations.map(op => op.result);
-renderBoxes();
-renderItems();
-msgDiv.textContent = '';
-startTimer();
-}
+    const boxEl = document.getElementById(op.id);
+    if (!boxEl) return;
 
+    // no permitir soltar si la caja ya está ocupada
+    if (boxEl.classList.contains('occupied')) {
+      msgDiv.textContent = 'Esa caja ya está ocupada.';
+      msgDiv.style.color = '#444';
+      return;
+    }
 
-resetBtn.addEventListener('click', generateNewRound);
+    const value = parseInt(draggedEl.getAttribute('data-value'), 10);
 
+    if (op.result === value) {
+      // correcto
+      boxEl.textContent = `${op.expr} = ${value}`;
+      boxEl.classList.add('occupied');
+      draggedEl.remove();
+      placed[op.id] = true;
+      msgDiv.textContent = '🎉 Correcto!';
+      msgDiv.style.color = '#10b981';
+      checkAllPlaced();
+    } else {
+      // incorrecto -> breve retroalimentación
+      msgDiv.textContent = '❌ Incorrecto!';
+      msgDiv.style.color = '#ef4444';
+      // opcional: sacudir visualmente (simple)
+      boxEl.animate([{ transform: 'translateX(-6px)' }, { transform: 'translateX(6px)' }, { transform: 'translateX(0)' }], { duration: 220 });
+    }
+  }
 
-generateNewRound();
+  function checkAllPlaced() {
+    const all = Object.values(placed).every(v => v === true);
+    if (all) {
+      clearInterval(timerInterval);
+      setTimeout(() => {
+        msgDiv.textContent = '✅ ¡Muy bien! Nuevas operaciones...';
+        msgDiv.style.color = '#0b6b3a';
+        generateNewRound();
+      }, 600);
+    }
+  }
+
+  // Timer
+  function startTimer() {
+    clearInterval(timerInterval);
+    timeLeft = ROUND_TIME;
+    updateTimerText();
+    timerInterval = setInterval(() => {
+      timeLeft--;
+      updateTimerText();
+      if (timeLeft <= 0) {
+        clearInterval(timerInterval);
+        msgDiv.textContent = '⏳ Se acabó el tiempo. Nuevas operaciones...';
+        msgDiv.style.color = '#ef4444';
+        // limpiar cualquier item restante visualmente (opcional)
+        setTimeout(() => generateNewRound(), 1000);
+      }
+    }, 1000);
+  }
+
+  function updateTimerText() {
+    timerEl.textContent = `Tiempo: ${timeLeft}`;
+  }
+
+  // Nueva ronda: genera operaciones, items (con ids únicos), renderiza y arranca timer
+  function generateNewRound() {
+    // asegurar ids únicos frescos
+    itemCounter = 0;
+    generateOperations();
+    // crear items como objetos con id único
+    items = operations.map(op => ({ id: uid('item'), value: op.result }));
+    renderBoxes();
+    renderItems();
+    msgDiv.textContent = '';
+    startTimer();
+  }
+
+  // Reinicio manual
+  resetBtn.addEventListener('click', () => {
+    generateNewRound();
+  });
+
+  // Iniciar la primera ronda
+  generateNewRound();
+
+})();
 </script>
 </body>
 </html>
